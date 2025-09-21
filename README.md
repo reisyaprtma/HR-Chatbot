@@ -64,8 +64,8 @@ frontend/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/ai-hr-chatbot.git
-   cd ai-hr-chatbot/frontend
+   git clone https://github.com/yourusername/hr-chatbot.git
+   cd hr-chatbot
    ```
 
 2. **Configure the backend**
@@ -205,7 +205,3 @@ For support and questions:
 - **Modern Web APIs**: Fetch, FormData, Storage APIs
 
 ---
-
-**Built with ❤️ for Bengkel Oto Prima**
-
-*Streamlining automotive technician recruitment with AI-powered automation*
