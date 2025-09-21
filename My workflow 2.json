@@ -1,0 +1,1334 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c6fae05f-0d24-416a-9af0-2811ef2c1fa7",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "=*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS, GET"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -240,
+        0
+      ],
+      "id": "49ab4147-5d0c-4699-93a2-abd22651ba7e",
+      "name": "Webhook",
+      "webhookId": "c6fae05f-0d24-416a-9af0-2811ef2c1fa7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9003e958-6c73-4c5f-bb6f-95d93e89b9d9",
+              "leftValue": "={{ $json.body.message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        48,
+        0
+      ],
+      "id": "0ec26a7a-3e47-4bde-8f61-dd35552be6f1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        512,
+        144
+      ],
+      "id": "ece0bc54-ad88-4dee-8b22-e113f8941741",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=What you need to do is extract data from  text parsed PDF here:\n{{ $('Extract from File').item.json.text }}",
+        "options": {
+          "systemMessage": "=You are an expert data extractor. Your task is to analyze the conversation and the provided CV text to extract the applicant's data. The final output **must be a single JSON object**, and nothing else. Do not include any text before or after the JSON.\n\n\nYou need to respon with JSON Format ONLY.\nYour JSON must follow this exact schema:\n{\n  \"data\":{\n    \"fullname\":\"...\",\n    \"email\":\"...\",\n    \"phone\":\"...\",\n    \"skills\":[\"...\",\"...\"],\n    \"experiences\":[\"...\",\"...\"],\n    \"certifications\":[\"...\",\"...\"]\n  }\n  \"message\":\"(Say Thank you for uploading the CV and Ask will user continuing interview or not. Also, Give extracted Data on message too, so user can now their extracted Data, Say it in Indonesian Language*)\"\n}\n*NOTE for JSON field message: \n1. Give user extracted Data on message, so user can now their extracted Data\n2. ALWAYS use Indonesia Language\n3. because this is JSON, use '\\n' if you wanna use newline/line breaks.\n\nIf the data not exist on the text, u can let it empty."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        320
+      ],
+      "id": "1d8d1a33-7943-4b1b-a78e-7cd939ac02b2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        512
+      ],
+      "id": "1b6b48ba-f67e-4552-b27a-77dafb51ac78",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bnwW9Iy7XSZJO5OS",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input text from the specified variable.\nconst inputText = $input.first().json.output;\n\n// Remove the leading and trailing \"```json\\n\" and \"\\n```\".\n// We use a regular expression to handle potential variations.\nconst cleanedText = inputText.replace(/^```json\\n|\\n```$/g, '').trim();\n\n// Parse the cleaned string into a JSON object.\nlet parsedJson;\ntry {\n  parsedJson = JSON.parse(cleanedText);\n} catch (e) {\n  // Handle parsing errors if the text isn't valid JSON.\n  // console.error('Failed to parse JSON:', e);\n  // Return an error or a different value as needed.\n  return [{ json: { error: 'Failed to parse JSON', details: e.message } }];\n}\n\n// Apply proper JSON string escaping to message field if it exists\nif (parsedJson.message) {\n  let message = parsedJson.message\n    .replace(/\\\\/g, '\\\\\\\\')  // escape backslashes first\n    .replace(/\"/g, '\\\\\"')    // escape quotes\n    .replace(/\\n/g, '\\\\n')   // convert newlines\n    .replace(/\\r/g, '\\\\r')   // convert carriage returns\n    .replace(/\\t/g, '\\\\t');  // convert tabs\n  \n  parsedJson.message = message;\n}\n\n// Return the parsed JSON object in the n8n format.\nreturn [{ json: parsedJson }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        320
+      ],
+      "id": "9eecac1d-eb2e-407a-8507-583fa3aafffa",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Balasan User:\n{{ $('Webhook').item.json.body.message }}",
+        "options": {
+          "systemMessage": "=Anda adalah HR Chatbot profesional dan ramah dari Bengkel Oto Prima.\nTugas utama Anda adalah mengumpulkan data pelamar untuk posisi Teknisi Mobil.\n\nAlur kerja Anda adalah sebagai berikut:\n1. **Permintaan CV**: Pelamar diminta untuk mengunggah CV. berikut DATA PROFIL hasil ekstraksi CV dari pengguna:\n\nName: {{ $('Get row(s) in sheet').item.json.fullname??\"Belum Terdata\" }}\nEmail: {{ $('Get row(s) in sheet').item.json.email??\"Belum Terdata\" }}\nTelp: {{ $('Get row(s) in sheet').item.json.telp??\"Belum Terdata\" }}\nWork_Experiences: {{ $('Get row(s) in sheet').item.json.work_experiences??\"Belum Terdata\" }}\nSkills: {{ $('Get row(s) in sheet').item.json.skills??\"Belum Terdata\" }}\nCertifications: {{ $('Get row(s) in sheet').item.json.certifications??\"Belum Terdata\" }}\nAddress:{{ $('Get row(s) in sheet').item.json.address??\"Belum Terdata\" }}\n\nTugas Anda Selanjutnya Adalah mewawancarai user agar memenuhi field diatas (Apabila ada yang kosong) dengan menanyakan tiap Field satu persatu.\n*NOTE: \n1. Pastikan saat menanyakan Data Address, user memberi alamat lengkap, dari Nama jalan hingga Domisili. JANGAN simpan dulu data nya jika alamat yang diberikan rancu dan kurang lengkap. SELALU tanyakan Kembali.\nSaat user telah memenuhi data, baru masukin ke respon JSON.\n2. Pastikan saat menayakan Data Telp, user tidak memberikan awalan 0 seperti '08xxxxx', pastikan dimulai dengan kode negara tertentu. JANGAN simpan dulu data nya jika Telp tidak valid. SELALU tanyakan Kembali.\nSaat user telah memenuhi data, baru masukin ke respon JSON.\n\nUntuk Percakapan sebelumnya dengan User Anda dapat melihat nya pada:\n{{  $json.chat??\"Belum ada percakapan\"}}\n\nBerikut DATA TAMBAHAN yang harus anda tanyakan pula:\nA1. Apakah Anda bisa mulai bekerja dalam waktu dekat, dan jika ya, kapan kira-kira Anda bisa bergabung dengan tim kami?\nJawaban User: {{ $('Get row(s) in sheet').item.json.A1??\"Belum Dijawab\" }}\nA2. Untuk posisi ini, terkadang diperlukan kerja lembur. Apakah Anda bersedia untuk bekerja di luar jam normal jika dibutuhkan?\nJawaban User: {{ $('Get row(s) in sheet').item.json.A2??\"Belum Dijawab\" }}\nA3. Apakah lokasi bengkel kami yang terletak di Jln. Ayani 2 Pontianak menjadi kendala bagi Anda?\nJawaban User: {{ $('Get row(s) in sheet').item.json.A3??\"Belum Dijawab\" }}\n\nRespon yang anda berikan harus berupa HANYA JSON, JANGAN sertakan teks lain selain teks JSON. untuk contoh JSON response nya adalah seperti berikut:\n{\n  \"complete\":\"...\"(y atau n, y jika seluruh data sudah terpenuhi baik DATA PROFIL, maupun DATA TAMBAHAN, n jika belum)\n  \"message\":\"...\"(pertanyaan wawancara ke user),\n  \"{(DATA PROFIL diatas yang kurang dan telah mendapatkan jawaban dari user, pastikan jawaban valid, jika belum valid, JANGAN tambahkan field. sesuaikan penamaan)}\": \"...\" (isi dengan data percakapan terbaru user setelah anda wawancarai)\n  \"{(Data Tambahan(Availability, Willingness_Overtime, Location_Constraint, sesuaikan!))}\":\"jawaban user\"\n}\n\n*NOTE untuk complete: Apabila user meminta ubah data, pastikan untuk memberikan atau mengubah nilai nya menjadi 'n' pada field complete\n\nBerikan JSON SESUAI FIELD YANG SUDAH DITENTUKAN, JANGAN menambah field lain.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        752,
+        -240
+      ],
+      "id": "6420dcb5-135f-4298-b1ad-d37111c2528c",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        688,
+        -64
+      ],
+      "id": "fe3cb8b1-43e9-4359-9830-4b11225ddc2a",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bnwW9Iy7XSZJO5OS",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM",
+          "mode": "list",
+          "cachedResultName": "hrchat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Webhook').item.json.body.ssid }}",
+            "fullname": "={{ $json.data.fullname }}",
+            "email": "={{ $json.data.email }}",
+            "telp": "={{ $json.data.phone }}",
+            "skills": "={{ $json.data.skills }}",
+            "work_experiences": "={{ $json.data.experiences }}",
+            "certifications": "={{ $json.data.certifications }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fullname",
+              "displayName": "fullname",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telp",
+              "displayName": "telp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "work_experiences",
+              "displayName": "work_experiences",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "certifications",
+              "displayName": "certifications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "A1",
+              "displayName": "A1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "A2",
+              "displayName": "A2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "A3",
+              "displayName": "A3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Hasil",
+              "displayName": "Hasil",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1568,
+        320
+      ],
+      "id": "6c318e08-c2be-4630-884e-97002d74a095",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UBRGNh7JSOCvZQol",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM",
+          "mode": "list",
+          "cachedResultName": "hrchat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "id",
+              "lookupValue": "={{ $('Webhook').item.json.body.ssid }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        -240
+      ],
+      "id": "6455f711-2d2d-43f6-830c-3475eb9a635b",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UBRGNh7JSOCvZQol",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input text from the specified variable.\nconst inputText = $input.first().json.output;\n\n// Remove the leading and trailing \"```json\\n\" and \"\\n```\".\n// We use a regular expression to handle potential variations.\nconst cleanedText = inputText.replace(/^```json\\n|\\n```$/g, '').trim();\n\n// Parse the cleaned string into a JSON object.\nlet parsedJson;\ntry {\n  parsedJson = JSON.parse(cleanedText);\n} catch (e) {\n  // Handle parsing errors if the text isn't valid JSON.\n  // console.error('Failed to parse JSON:', e);\n  // Return an error or a different value as needed.\n  return [{ json: { error: 'Failed to parse JSON', details: e.message } }];\n}\n\n// Return the parsed JSON object in the n8n format.\nreturn [{ json: parsedJson }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        -240
+      ],
+      "id": "ad3c4a08-adcd-418c-83bb-98dae66248d2",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Code in JavaScript1').item.json.complete }}",
+                    "rightValue": "y",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c6e35346-9add-476e-8a72-5f4806af0574"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Yes"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2a907844-568a-478f-b010-37e2d023942c",
+                    "leftValue": "={{ $('Code in JavaScript1').item.json.complete }}",
+                    "rightValue": "n",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "No"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1808,
+        -240
+      ],
+      "id": "8b9bebfe-ef66-4928-a78d-622c6bb27bc7",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Data Pelamar:\nNama: {{ $('Get row(s) in sheet').item.json.fullname }}\nemail: {{ $('Get row(s) in sheet').item.json.email }}\nPengalaman Kerja: {{ $('Get row(s) in sheet').item.json.work_experiences }}\nSkill: {{ $('Get row(s) in sheet').item.json.skills }}\nAlamat: {{ $('Get row(s) in sheet').item.json.address }}\n\nSertifikasi: {{ $('Get row(s) in sheet').item.json.certifications }}\n\nData wawancara: \nA1. Apakah Anda bisa mulai bekerja dalam waktu dekat, dan jika ya, kapan kira-kira Anda bisa bergabung dengan tim kami?\nJawaban User: {{ $('Get row(s) in sheet').item.json.A1 }}\nA2. Untuk posisi ini, terkadang diperlukan kerja lembur. Apakah Anda bersedia untuk bekerja di luar jam normal jika dibutuhkan?\nJawaban User: {{ $('Get row(s) in sheet').item.json.A2 }}\nA3. Apakah lokasi bengkel kami (sebutkan lokasinya) menjadi kendala bagi Anda?\nJawaban User: {{ $('Get row(s) in sheet').item.json.A3 }}",
+        "options": {
+          "systemMessage": "Anda adalah seorang agen penilaian HR yang bertugas untuk menganalisis data pelamar untuk posisi Teknisi Mobil di Bengkel Oto Prima. Tugas utama Anda adalah memberikan penilaian yang objektif dan terstruktur berdasarkan kriteria yang telah ditetapkan.\n\nKriteria Penilaian\nPenilaian harus didasarkan pada kriteria berikut, dengan bobot yang telah ditentukan:\n\nPengalaman Kerja (Bobot 40%):\n\nFokus pada relevansi pengalaman kerja dengan posisi Teknisi Mobil.\n\nDurasi pengalaman dan jenis pekerjaan sebelumnya.\n\nPengalaman di bengkel resmi atau bengkel besar akan mendapatkan nilai lebih.\n\nKeterampilan (Bobot 30%):\n\nIdentifikasi keterampilan teknis (misalnya: perbaikan mesin, kelistrikan, sistem rem, dll.).\n\nPenilaian terhadap keterampilan non-teknis (misalnya: komunikasi, pemecahan masalah).\n\nKeahlian yang spesifik dan langka akan mendapatkan nilai tambahan.\n\nSertifikasi (Bobot 20%):\n\nSertifikasi dari lembaga terpercaya di bidang otomotif (misalnya: ASE, sertifikasi pabrikan mobil tertentu, dll.) akan mendapatkan nilai tinggi.\n\nSertifikasi yang relevan dengan jenis mobil yang dilayani di Bengkel Oto Prima akan sangat dihargai.\n\nPenilaian juga mempertimbangkan validitas dan kredibilitas sertifikasi.\n\nKesesuaian dengan Persyaratan Perusahaan (Bobot 10%):\n\nKetersediaan Mulai Kerja (A1): Apakah pelamar dapat mulai bekerja dalam waktu dekat? Jawaban yang fleksibel atau \"segera\" akan mendapatkan nilai tinggi.\n\nKesediaan Lembur (A2): Apakah pelamar bersedia kerja lembur? Jawaban \"ya\" atau \"bersedia\" adalah nilai positif.\n\nLokasi (A3): Apakah lokasi bengkel menjadi kendala? Jawaban \"tidak\" adalah nilai yang diharapkan.\n\nInstruksi Penilaian\nLakukan penilaian untuk setiap kriteria secara individual.\n\nBerikan skor numerik (misalnya, dari 1 hingga 5 atau 1 hingga 10) untuk setiap kriteria.\n\nHitung total skor berdasarkan bobot yang telah ditentukan.\n\nTuliskan ringkasan naratif yang menjelaskan alasan di balik skor tersebut.\n\nBerikan rekomendasi akhir (misalnya: \"Sangat Direkomendasikan\", \"Direkomendasikan\", \"Pertimbangkan\", \"Tolak\").\n\nFormat Keluaran\nTanggapan Anda HARUS dalam format JSON untuk memudahkan pemrosesan data tanpa tambahan teks lain. Formatnya adalah sebagai berikut:\n{\n  \"nama_pelamar\": \"...\",\n  \"penilaian\": {\n    \"pengalaman_kerja\": {\n      \"skor\": \"...\",\n      \"komentar\": \"...\"\n    },\n    \"keterampilan\": {\n      \"skor\": \"...\",\n      \"komentar\": \"...\"\n    },\n    \"sertifikasi\": {\n      \"skor\": \"...\",\n      \"komentar\": \"...\"\n    },\n    \"kesesuaian_perusahaan\": {\n      \"skor\": \"...\",\n      \"komentar\": \"...\"\n    }\n  },\n  \"total_skor\": \"...\",\n  \"rekomendasi\": \"...\",\n  \"ringkasan_narasi\": \"...\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2112,
+        -304
+      ],
+      "id": "8f8df728-0d19-48cf-99ac-ec9ac526b579",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        -64
+      ],
+      "id": "22cb623d-3d24-479b-b49c-19c43d766b8d",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bnwW9Iy7XSZJO5OS",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input text from the specified variable.\nconst inputText = $input.first().json.output;\n\n// Remove the leading and trailing \"```json\\n\" and \"\\n```\".\n// We use a regular expression to handle potential variations.\nconst cleanedText = inputText.replace(/^```json\\n|\\n```$/g, '').trim();\n\n// Parse the cleaned string into a JSON object.\nlet parsedJson;\ntry {\n  parsedJson = JSON.parse(cleanedText);\n} catch (e) {\n  // Handle parsing errors if the text isn't valid JSON.\n  // console.error('Failed to parse JSON:', e);\n  // Return an error or a different value as needed.\n  return [{ json: { error: 'Failed to parse JSON', details: e.message } }];\n}\n\n// Return the parsed JSON object in the n8n format.\nreturn [{ json: parsedJson }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2448,
+        -304
+      ],
+      "id": "fdeaf01f-f587-46d7-9ba9-0b88ba46b3a4",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM",
+          "mode": "list",
+          "cachedResultName": "hrchat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Webhook').item.json.body.ssid }}",
+            "Hasil": "=Hasil: {{ $json.rekomendasi }}\nRingkasan: {{ $json.ringkasan_narasi }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fullname",
+              "displayName": "fullname",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "telp",
+              "displayName": "telp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "work_experiences",
+              "displayName": "work_experiences",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "certifications",
+              "displayName": "certifications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "A1",
+              "displayName": "A1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "A2",
+              "displayName": "A2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "A3",
+              "displayName": "A3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Hasil",
+              "displayName": "Hasil",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        -304
+      ],
+      "id": "39ddee24-3cda-44da-a5a5-d67654f26e28",
+      "name": "Append or update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UBRGNh7JSOCvZQol",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"complete\":\"{{ $json.Complete }}\",\n  \"message\":\"{{ $json.message }}\"\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1312,
+        -240
+      ],
+      "id": "c989bf0f-6eb5-45fb-a384-c32c212ab8fc",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"message\": \"{{ $('Code in JavaScript').item.json.message }}\"\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2000,
+        320
+      ],
+      "id": "1db776e8-fc65-4069-8998-acad0b6d582e",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM",
+          "mode": "list",
+          "cachedResultName": "hrchat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Webhook').item.json.body.ssid }}",
+            "address": "={{ $json.Address||$('Get row(s) in sheet').item.json.address  }}",
+            "row_number": 0,
+            "A1": "={{$json.Availability||$('Get row(s) in sheet').item.json.A1 }}",
+            "A2": "={{ $json.Willingness_Overtime||$('Get row(s) in sheet').item.json.A2 }}",
+            "A3": "={{$json.Location_Constraint||$('Get row(s) in sheet').item.json.A3 }}",
+            "fullname": "={{ $json.Name||$('Get row(s) in sheet').item.json.fullname }}\n",
+            "work_experiences": "={{  $json.Work_Experiences||$('Get row(s) in sheet').item.json.work_experiences }}",
+            "skills": "={{  $json.Skills||$('Get row(s) in sheet').item.json.skills }}",
+            "email": "={{ $json.Email||$('Get row(s) in sheet').item.json.email}}",
+            "telp": "={{$json.Telp||$('Get row(s) in sheet').item.json.telp}}",
+            "certifications": "={{$json.Certifications||$('Get row(s) in sheet').item.json.certifications   }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fullname",
+              "displayName": "fullname",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "telp",
+              "displayName": "telp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "work_experiences",
+              "displayName": "work_experiences",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "certifications",
+              "displayName": "certifications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "A1",
+              "displayName": "A1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "A2",
+              "displayName": "A2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "A3",
+              "displayName": "A3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Hasil",
+              "displayName": "Hasil",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1488,
+        -240
+      ],
+      "id": "4afc4fad-5031-4519-8ea7-ab0df6cc9747",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UBRGNh7JSOCvZQol",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM",
+          "mode": "list",
+          "cachedResultName": "hrchat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 379286093,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit#gid=379286093"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Webhook').item.json.body.ssid }}",
+            "chat": "=AI: {{ $('Code in JavaScript').item.json.message }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "chat",
+              "displayName": "chat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1776,
+        320
+      ],
+      "id": "799d8311-7f79-4e55-a395-e5bda16ac8eb",
+      "name": "Append or update row in sheet2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UBRGNh7JSOCvZQol",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM",
+          "mode": "list",
+          "cachedResultName": "hrchat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 379286093,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit#gid=379286093"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "id",
+              "lookupValue": "={{ $('Webhook').item.json.body.ssid }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        432,
+        -240
+      ],
+      "id": "5f62cdbd-662d-41b7-be47-af00905f0061",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UBRGNh7JSOCvZQol",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM",
+          "mode": "list",
+          "cachedResultName": "hrchat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 379286093,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12A7P_UoJDciSFytu34Xvn6eZSUbJ0mYQo45hCiOwGRM/edit#gid=379286093"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Get row(s) in sheet1').item.json.id }}",
+            "chat": "={{ $('Get row(s) in sheet1').item.json.chat }}\nUser: {{ $('Webhook').item.json.body.message }}\nAI: {{ $('Code in JavaScript1').item.json.message }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "chat",
+              "displayName": "chat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1648,
+        -240
+      ],
+      "id": "64e37269-ae79-41b3-8ab1-241ca0f44026",
+      "name": "Append or update row in sheet3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UBRGNh7JSOCvZQol",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet3": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "764d4d3b-94c1-472a-b4dc-381e4b2bdd12",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "422303a662a2e258a76015e1bd345c4f6aa4235fb513b974fd793251a311cceb"
+  },
+  "id": "xiQc9HPEPnIX82uM",
+  "tags": []
+}

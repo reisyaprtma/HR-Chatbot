@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="chat-header" role="banner" aria-label="Chat header">
+      <div class="header-content">
+        <!-- <div class="ai-logo" aria-hidden="true"></div>
+        <div class="titles">
+          <h1 class="app-title">Chat with AI</h1>
+          <p class="app-subtitle">Ask anything. Get answers.</p>
+        </div> -->
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="new-chat" aria-label="Start a new chat">New Chat</button>
+          <!-- <button class="btn btn-secondary" id="export-chat" aria-label="Export conversation">Export</button> -->
+          <!-- <button class="btn btn-secondary" id="clear-chat" aria-label="Clear conversation">Clear</button> -->
+        </div>
+      </div>
+    </header>
+
+  <main class="chat-container" role="main">
+    <section class="welcome-screen" id="welcome-screen" aria-live="polite">
+      <div class="welcome-logo" aria-hidden="true"></div>
+      <h2 class="welcome-heading">Halo!</h2>
+      <p class="welcome-subheading">Kami sedang membuka lowongan untuk posisi Teknisi Mobil!</p>
+    </section>
+
+    <section class="messages-area" id="messages-area" aria-live="polite" aria-relevant="additions" aria-label="Chat messages">
+      <div class="message ai">
+        <div class="avatar ai">
+        </div>
+        <div class="bubble ai">
+          <p>Halo! Sebelum melanjutkan proses rekrutmen, silahkan unggah CV Anda!</p>
+        </div>
+        <div class="meta">
+          <span>
+            <script>
+              const now = new Date();
+              const hours = now.getHours();
+              const minutes = now.getMinutes();
+              const timeString = `${hours}:${minutes.toString().padStart(2, '0')}`;
+              document.write(timeString);
+            </script>
+          </span>
+        </div>
+        
+      </div>
+      <div class="cv-input" role="group" aria-label="Upload CV">
+        <!-- <div class="icon" aria-hidden="true"></div> -->
+        <input type="file" id="cv" aria-label="Choose CV">
+        <span class="hint">PDF</span>
+      </div>
+      <button id="btn-upload" class="btn btn-up">
+        Upload
+      </button>
+      <!-- <button class="close">
+        Tutup Percakapan
+      </button> -->
+    </section>
+
+    <div class="typing-indicator" id="typing-indicator" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+  </main>
+
+  <footer class="input-area" role="contentinfo" aria-label="Message input">
+    <div class="input-wrapper">
+      <textarea id="message-input" class="message-input" rows="1" placeholder="Ask me anything..." aria-label="Type your message" autocomplete="off"></textarea>
+      <div class="input-actions">
+        <span id="char-counter" class="char-counter" aria-live="polite"></span>
+        <button id="send-button" class="btn btn-primary send-button" aria-label="Send message">Send</button>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
